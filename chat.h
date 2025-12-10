@@ -1,61 +1,43 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/sem.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
+#ifndef CHAT_H
+#define CHAT_H
 
-int sem_id;
+#include <sys/types.h>
 
-struct sharedMemory{
-    int flag;
-};
+#define MAX_PARTICIPANTS 10
+#define MAX_MESSAGES 100
+#define MAX_MESSAGE_LENGTH 256
+#define MAX_CONVERSATIONS 10
 
-void lock(){
-    struct sembuf op = {0, -1, 0};
-    if (semop(sem_id, &op, 1) == -1){
-        exit(1);
-    }
-}
+typedef struct{
+    pid_t participantId;
+    int hasRead;
+} Participant;
 
-void unlock(){
-    struct sembuf op = {0, 1, 0};
-    if (semop(sem_id, &op, 1) == -1){
-        exit(1);
-    }
-}
+typedef struct{
+    int conversationId;
+    Participant participants[MAX_PARTICIPANTS];
+    int numParticipants;
+} Conversation;
 
-int main(){
-    // Semaphore
-    key_t sem_key = 0x1234;
-    sem_id = semget(sem_key, 1, IPC_CREAT | 0666);
-    if (sem_id == -1){
-        exit(1);
-    }
-    if (semctl(sem_id, 0, SETVAL, 1) == -1){
-        exit(1);
-    }
+// All that defines a message in shared memory
+typedef struct{
+    int messageId;
+    pid_t senderId;
+    char text[MAX_MESSAGE_LENGTH];
+    int hasBeenRead[MAX_PARTICIPANTS];
+} Message;
 
-    // Shared memory
-    key_t shm_key = 0x5678;
-    int shm_id = shmget(shm_key, sizeof(struct sharedMemory), IPC_CREAT | 0666);
-    if (shm_id == -1){
-        exit(1);
-    }
-    struct sharedMemory *shm_ptr = (struct sharedMemory *)shmat(shm_id, NULL, 0);
-    if (shm_ptr == (struct sharedMemory *)-1){
-        exit(1);
-    }
-    lock();
-    printf("Inside critical section\n");
-    shm_ptr->flag = 42;
-    printf("(%d)\n", shm_ptr->flag);
-    unlock();
-    printf("Outside critical section\n");
+// All that will be stored in shared memory
+typedef struct{
+    Conversation conversations[MAX_CONVERSATIONS];
+    Message messages[MAX_MESSAGES];
+    int numConversations;
+    int numMessages;
+} SharedMemory;
 
-    // Cleanup
-    shmdt(shm_ptr);
-    shmctl(shm_id, IPC_RMID, NULL);
-    semctl(sem_id, 0, IPC_RMID);
-}
+int setUpSemaphore();
+SharedMemory* setUpSharedMemory();
+void lock(int sem_id);
+void unlock(int sem_id);
+
+#endif
