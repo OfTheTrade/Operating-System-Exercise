@@ -4,38 +4,55 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 
+#define SEM_KEY 0x1234
+#define SHM_KEY 0x5678
 
-int setUpSemaphore(){
-    key_t sem_key = 0x1234;
+void setUpSemaphore(int* sem_id){
+    key_t sem_key = SEM_KEY;
     // Semaphore initialisation
-    int sem_id = semget(sem_key, 1, IPC_CREAT | 0666);
-    if (sem_id == -1){
+    int sem_id_buffer = semget(sem_key, 1, IPC_CREAT | 0666);
+    if (sem_id_buffer == -1){
         perror("Failed to initialise semaphore");
         exit(1);
     }
     // Give it the correct value
-    if (semctl(sem_id, 0, SETVAL, 1) == -1){
+    if (semctl(sem_id_buffer, 0, SETVAL, 1) == -1){
         perror("Failed to set up semaphore");
         exit(1);
     }
-    return sem_id;
+    // Return value
+    *(sem_id) = sem_id_buffer;
 }
-
-SharedMemory* setUpSharedMemory(){
-    key_t shm_key = 0x5678;
+void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
+    key_t shm_key = SHM_KEY;
     // Initialise shared memory
-    int shm_id = shmget(shm_key, sizeof(SharedMemory), IPC_CREAT | 0666);
-    if (shm_id == -1){
+    int shm_id_buffer = shmget(shm_key, sizeof(SharedMemory), IPC_CREAT | 0666);
+    if (shm_id_buffer == -1){
         perror("Failed to aquire shared memory");
         exit(1);
     }
     // Mold shared memory according to the used struct
-    SharedMemory *shm_ptr = (SharedMemory *)shmat(shm_id, NULL, 0);
-    if (shm_ptr == (SharedMemory *)-1){
+    SharedMemory *shm_ptr_buffer = (SharedMemory *)shmat(shm_id_buffer, NULL, 0);
+    if (shm_ptr_buffer == (SharedMemory *)-1){
         perror("Failed to attach to shared memory");
         exit(1);
     }
-    return shm_ptr;
+    // Starting values for the struct
+    shm_ptr_buffer->numConversations = 0;
+    shm_ptr_buffer->numMessages = 0;
+
+    // Return values
+    *(shm_id) = shm_id_buffer;
+    *(shm_ptr) = shm_ptr_buffer;
+}
+
+void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
+    // Detach
+    shmdt(shm_ptr); 
+    // Remove shared memory           
+    shmctl(shm_id, IPC_RMID, NULL); 
+    // Remove semaphore
+    semctl(sem_id, 0, IPC_RMID);  
 }
 
 // Use when entering critical section
@@ -57,15 +74,20 @@ void unlock(int sem_id){
 }
 
 int main(){
-    int semaphore = setUpSemaphore();
-    SharedMemory* sharedMemory = setUpSharedMemory();
-    lock(semaphore);
+    int sem_id;
+    setUpSemaphore(&sem_id);
+    int shm_id;
+    SharedMemory* sharedMemory;
+    setUpSharedMemory(&shm_id,&sharedMemory);
+    lock(sem_id);
     printf("ENTERED CRITICAL SECTION\n");
-    sharedMemory->messages->text[0] = 's';
+    sharedMemory->messages[0].text[0] = 's';
   
-    printf("(%c)\n", sharedMemory->messages->text[0]);
+    printf("(%c)\n", sharedMemory->messages[0].text[0]);
 
-    unlock(semaphore);
+    unlock(sem_id);
     printf("EXITED CRITICAL SECTION\n");
+
+    cleanUp(sem_id,shm_id,sharedMemory);
     return 0;
 }

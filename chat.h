@@ -35,8 +35,9 @@ typedef struct{
     int numMessages;
 } SharedMemory;
 
-int setUpSemaphore();
-SharedMemory* setUpSharedMemory();
+void setUpSemaphore(int* sem_id);
+void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
+void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr);
 void lock(int sem_id);
 void unlock(int sem_id);
 
