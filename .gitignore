@@ -1,6 +1,12 @@
 *
 
+!build/
+!include/
+!program/
+!src/
+!build/*
+!program/*.c
+!include/*.h
+!src/*.c
 !.gitignore
-!*.c
-!*.h
 !makefile
