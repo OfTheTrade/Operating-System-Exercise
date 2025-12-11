@@ -5,5 +5,5 @@ compile:
 
 run: compile
 	@echo " Running conv_main ...";
-	./build/conv_main
+	./build/conv_main 12345
 

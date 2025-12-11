@@ -7,6 +7,10 @@
 #define SEM_KEY 0x1234
 #define SHM_KEY 0x5678
 
+
+// === Semaphore/Shared Memory Setup Functions ===
+
+// Set up semaphore
 void setUpSemaphore(int* sem_id){
     key_t sem_key = SEM_KEY;
     // Semaphore initialisation
@@ -23,6 +27,8 @@ void setUpSemaphore(int* sem_id){
     // Return value
     *(sem_id) = sem_id_buffer;
 }
+
+// Set up shared memory
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
     key_t shm_key = SHM_KEY;
     // Initialise shared memory
@@ -39,13 +45,13 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
     }
     // Starting values for the struct
     shm_ptr_buffer->numConversations = 0;
-    shm_ptr_buffer->numMessages = 0;
 
     // Return values
     *(shm_id) = shm_id_buffer;
     *(shm_ptr) = shm_ptr_buffer;
 }
 
+// Cleanup semaphore and shared memory
 void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
     // Detach
     shmdt(shm_ptr); 
@@ -54,6 +60,9 @@ void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
     // Remove semaphore
     semctl(sem_id, 0, IPC_RMID);  
 }
+
+
+// == Semaphore Actions ===
 
 // Use when entering critical section
 void lock(int sem_id){

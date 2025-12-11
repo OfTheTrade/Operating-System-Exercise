@@ -8,18 +8,13 @@
 #define MAX_MESSAGE_LENGTH 256
 #define MAX_CONVERSATIONS 10
 
+// All that defines a participant in a conversation
 typedef struct{
     pid_t participantId;
     int hasRead;
 } Participant;
 
-typedef struct{
-    int conversationId;
-    Participant participants[MAX_PARTICIPANTS];
-    int numParticipants;
-} Conversation;
-
-// All that defines a message in shared memory
+// All that defines a message in a conversation
 typedef struct{
     int messageId;
     pid_t senderId;
@@ -27,17 +22,27 @@ typedef struct{
     int hasBeenRead[MAX_PARTICIPANTS];
 } Message;
 
+// All that defines a conversation in shared memory
+typedef struct{
+    int conversationId;
+    Participant participants[MAX_PARTICIPANTS];
+    int numParticipants;
+    Message messages[MAX_MESSAGES];
+    int numMessages;
+} Conversation;
+
 // All that will be stored in shared memory
 typedef struct{
     Conversation conversations[MAX_CONVERSATIONS];
-    Message messages[MAX_MESSAGES];
     int numConversations;
-    int numMessages;
 } SharedMemory;
 
+// === Semaphore/Shared Memory Setup Functions ===
 void setUpSemaphore(int* sem_id);
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
 void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr);
+
+// == Semaphore Actions ===
 void lock(int sem_id);
 void unlock(int sem_id);
 

@@ -1,21 +1,22 @@
 #include "chat.h"
+#include "conversation.h"
 #include <stdio.h>
+#include <stdlib.h>
 
-int main(){
-    int sem_id;
-    setUpSemaphore(&sem_id);
-    int shm_id;
-    SharedMemory* sharedMemory;
-    setUpSharedMemory(&shm_id,&sharedMemory);
-    lock(sem_id);
-    printf("ENTERED CRITICAL SECTION\n");
-    sharedMemory->messages[0].text[0] = 's';
-  
-    printf("(%c)\n", sharedMemory->messages[0].text[0]);
+int sem_id_global;
+int shm_id_global;
+SharedMemory* shm_ptr_global;
 
-    unlock(sem_id);
-    printf("EXITED CRITICAL SECTION\n");
+int conversation_id_global;
 
-    cleanUp(sem_id,shm_id,sharedMemory);
+int main(int argc, char** argv){
+    if (argc != 2){
+        fprintf(stderr,"Incorrect argument ammount! Should be called as:\n%s <conversation_id>\n", argv[0]);
+        return 1;
+    }
+    conversation_id_global = atoi(argv[1]);
+
+    cleanUp(sem_id_global,shm_id_global,shm_ptr_global);
+    printf("FINISHED\n");
     return 0;
 }
