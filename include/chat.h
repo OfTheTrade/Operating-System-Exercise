@@ -47,7 +47,7 @@ void setUpSemaphore(int* sem_id);
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
 
 // Cleanup semaphore and shared memory
-void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr);
+void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr);
 
 // Cleanup semaphore and detach from shared memory
 void cleanUpProcess(int sem_id, SharedMemory* shm_ptr);

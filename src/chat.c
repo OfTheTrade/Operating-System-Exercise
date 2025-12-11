@@ -44,7 +44,16 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
         exit(1);
     }
     // Starting values for the struct
-    shm_ptr_buffer->numConversations = 0;
+    struct shmid_ds shm_stat;
+    if (shmctl(shm_id_buffer, IPC_STAT, &shm_stat) == -1) {
+        perror("Failed to determine if shared memory is already initiated");
+        exit(1);
+    }
+
+    // If this is the first time, initiate the values of the shared memory
+    if (shm_stat.shm_nattch == 0) {
+        shm_ptr_buffer->numConversations = 0;
+    }
 
     // Return values
     *(shm_id) = shm_id_buffer;
@@ -52,7 +61,7 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
 }
 
 // Cleanup semaphore and shared memory
-void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
+void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr){
     // Detach
     shmdt(shm_ptr); 
     // Remove shared memory           

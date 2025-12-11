@@ -59,6 +59,7 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     return cnv_index;
 }
 
+// Leave the conversation with the given id
 int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     lock(sem_id);
 
