@@ -1,10 +1,11 @@
 #include "conversation.h"
 #include <unistd.h>
+#include <string.h>
 
 // === Conversation Actions ===
 
 // Find out if a convertation with the given id exists in the SharedMemoryGiven
-int findConversation(int cnv_id, SharedMemory* shm_ptr){
+int findConversationIndex(int cnv_id, SharedMemory* shm_ptr){
     for (int i = 0; i < shm_ptr->numConversations; ++i){
         if (shm_ptr->conversations[i].conversationId == cnv_id){
             return i;
@@ -17,7 +18,7 @@ int findConversation(int cnv_id, SharedMemory* shm_ptr){
 int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     lock(sem_id);
 
-    int cnv_index = findConversation(cnv_id, shm_ptr);
+    int cnv_index = findConversationIndex(cnv_id, shm_ptr);
     // If no conversation with the given id exists, create one if possible
     if (cnv_index == -1){
         cnv_index = shm_ptr->numConversations;
@@ -57,4 +58,79 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     unlock(sem_id);
     return cnv_index;
 }
-void sendMessage(int cnv_id);
+
+int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
+    lock(sem_id);
+
+    int cnv_index = findConversationIndex(cnv_id, shm_ptr);
+    // If no conversation with the given id exists, return with failure
+    if (cnv_index == -1){
+
+        unlock(sem_id);
+        return -1;
+    }
+
+    // Search for the current process in participants
+    int found = 0;
+    Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
+    for (int i = 0; i < cnv_ptr->numParticipants; i++){
+        if (cnv_ptr->participants[i].participantId == getpid()){
+            found = 1;
+            // Shift left participants
+            for (int j = i; j < cnv_ptr->numParticipants - 1; i++){
+                cnv_ptr->participants[i] = cnv_ptr->participants[i+1];
+            }
+            cnv_ptr->numParticipants--;
+            break;
+        }
+    }
+
+    // If conversation is empty, remove it
+    if(cnv_ptr->numParticipants == 0 && cnv_ptr->numMessages == 0){
+        // Shift left conversations
+        for(int i = cnv_index; i < shm_ptr->numConversations - 1; i++){
+            shm_ptr->conversations[i] = shm_ptr->conversations[i+1];
+        }
+        shm_ptr->numConversations--;
+    }
+    unlock(sem_id);
+    return found ? 0 : -1;
+}
+
+// Send a message to the conversation with the given id
+int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text){
+    lock(sem_id);
+
+    // Find the conversation where the message should be sent
+    int cnv_index = findConversationIndex(cnv_id, shm_ptr);
+    // If there isn't a conversation with that id return with failure
+    if (cnv_index == -1){
+        unlock(sem_id);
+        return -1;
+    }
+    Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
+
+    // If no more messages can be sent, return with failure
+    if (cnv_ptr->numMessages >= MAX_MESSAGES){
+        unlock(sem_id);
+        return -1;
+    }
+    // The new message will be located at the last spot (the unupdated numMessages since the table messages[numMessages] is zero indexed)
+    int msg_index = cnv_ptr->numMessages;
+    Message* msg_ptr = &(cnv_ptr->messages[msg_index]);
+    
+    // Initialise the values of the new message
+    msg_ptr->messageId = msg_index;
+    msg_ptr->senderId = getpid();
+    strncpy(msg_ptr->text, text, MAX_MESSAGE_LENGTH - 1);
+    msg_ptr->text[MAX_MESSAGE_LENGTH - 1] = '\0';
+    for (int i=0; i < MAX_PARTICIPANTS; i++){
+        msg_ptr->hasBeenRead[i] = 0;
+    }
+
+    // Update numMessages
+    cnv_ptr->numMessages++;
+
+    unlock(sem_id);
+    return msg_index;
+}

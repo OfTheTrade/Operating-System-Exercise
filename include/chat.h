@@ -37,13 +37,27 @@ typedef struct{
     int numConversations;
 } SharedMemory;
 
+
 // === Semaphore/Shared Memory Setup Functions ===
+
+// Set up semaphore
 void setUpSemaphore(int* sem_id);
+
+// Set up shared memory
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
+
+// Cleanup semaphore and shared memory
 void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr);
 
+// Cleanup semaphore and detach from shared memory
+void cleanUpProcess(int sem_id, SharedMemory* shm_ptr);
+
 // == Semaphore Actions ===
+
+// Use when entering critical section
 void lock(int sem_id);
+
+// Use when exiting critical section
 void unlock(int sem_id);
 
 #endif

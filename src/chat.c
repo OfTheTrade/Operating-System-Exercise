@@ -61,6 +61,13 @@ void cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
     semctl(sem_id, 0, IPC_RMID);  
 }
 
+// Cleanup semaphore and detach from shared memory
+void cleanUpProcess(int sem_id, SharedMemory* shm_ptr){
+    // Detach
+    shmdt(shm_ptr); 
+    // Remove semaphore
+    semctl(sem_id, 0, IPC_RMID);  
+}
 
 // == Semaphore Actions ===
 

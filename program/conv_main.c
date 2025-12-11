@@ -16,7 +16,11 @@ int main(int argc, char** argv){
     }
     conversation_id_global = atoi(argv[1]);
 
-    cleanUp(sem_id_global,shm_id_global,shm_ptr_global);
+     // Setup semaphore και shared memory
+    setUpSemaphore(&sem_id_global);
+    setUpSharedMemory(&shm_id_global, &shm_ptr_global);
+
+    cleanUpProcess(sem_id_global,shm_ptr_global);
     printf("FINISHED\n");
     return 0;
 }

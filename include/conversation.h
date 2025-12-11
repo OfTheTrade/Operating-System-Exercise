@@ -4,8 +4,14 @@
 #include "chat.h"
 
 // === Conversation Actions ===
-int findConversation(int cnv_id, SharedMemory* shm_ptr);
+
+// Find and return the index of a convertation with the given id in SharedMemoryGiven
+int findConversationIndex(int cnv_id, SharedMemory* shm_ptr);
+
+// Join the conversation with the given id, or create one if one does not exist
 int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr);
-void sendMessage(int cnv_id);
+
+// Send a message to the conversation with the given id
+int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text);
 
 #endif
