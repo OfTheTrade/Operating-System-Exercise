@@ -14,15 +14,22 @@
 void setUpSemaphore(int* sem_id){
     key_t sem_key = SEM_KEY;
     // Semaphore initialisation
-    int sem_id_buffer = semget(sem_key, 1, IPC_CREAT | 0666);
+    int sem_id_buffer = semget(sem_key, 1, IPC_CREAT | IPC_EXCL | 0666);
     if (sem_id_buffer == -1){
-        perror("Failed to initialise semaphore");
-        exit(1);
-    }
-    // Give it the correct value
-    if (semctl(sem_id_buffer, 0, SETVAL, 1) == -1){
-        perror("Failed to set up semaphore");
-        exit(1);
+        // Semaphore already exists
+
+        // Check if semget instead failed due to actual error (without IPC_EXCL this time)
+        sem_id_buffer = semget(sem_key, 1, IPC_CREAT | 0666);
+        if (sem_id_buffer == -1){
+            perror("Failed to initialise semaphore");
+            exit(1);
+        }
+    }else{
+        // Semaphore didn't exist before, give it the correct value
+        if (semctl(sem_id_buffer, 0, SETVAL, 1) == -1){
+            perror("Failed to set up semaphore");
+            exit(1);
+        }
     }
     // Return value
     *(sem_id) = sem_id_buffer;
@@ -70,12 +77,10 @@ void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr){
     semctl(sem_id, 0, IPC_RMID);  
 }
 
-// Cleanup semaphore and detach from shared memory
+// Detach from shared memory
 void cleanUpProcess(int sem_id, SharedMemory* shm_ptr){
     // Detach
     shmdt(shm_ptr); 
-    // Remove semaphore
-    semctl(sem_id, 0, IPC_RMID);  
 }
 
 // == Semaphore Actions ===

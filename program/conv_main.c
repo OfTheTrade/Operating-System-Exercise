@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 int sem_id_global;
 int shm_id_global;
@@ -11,8 +12,6 @@ SharedMemory* shm_ptr_global;
 int cnv_id_global;
 int cnv_index_global;
 int prt_index_global;
-
-
 
 int main(int argc, char** argv){
     if (argc != 2){
@@ -32,6 +31,8 @@ int main(int argc, char** argv){
 
     printf("Succesfully joined conversation with id:(%d) Input messages to send below.\n", cnv_id_global);
 
+    // Start receiving thread
+
     char buffer[MAX_MESSAGE_LENGTH];
     while (1){
         printf(">");
@@ -42,6 +43,14 @@ int main(int argc, char** argv){
         // If TERMINATE is read, leave the conversation, detach from memory and cleanup the semaphore
         // The shared memory remains untouched
         if (strcmp(buffer, "TERMINATE") == 0) {
+            Conversation* cnv = &shm_ptr_global->conversations[cnv_index_global];
+            printf("\n--- Messages in conversation %d ---\n", cnv->conversationId);
+            for (int i = 0; i < cnv->numMessages; i++) {
+                Message* msg = &cnv->messages[i];
+                printf("[PID %d]: %s\n", msg->senderId, msg->text);
+            }
+            printf("--- End of messages ---\n");
+            unlock(sem_id_global);
 
             leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
             cleanUpProcess(sem_id_global, shm_ptr_global);
