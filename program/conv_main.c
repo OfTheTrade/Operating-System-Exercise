@@ -12,6 +12,9 @@ int shm_id_global;
 SharedMemory* shm_ptr_global;
 int cnv_id_global;
 
+// Used by the recieving thread to order the main thread to terminate 
+volatile int termination_order = 0;
+
 void* recieveMessages(void* arg){
 
     while(1){
@@ -21,21 +24,25 @@ void* recieveMessages(void* arg){
         // Find the current position of the conversation and participant struct in shared memory
         int cnv_index = findConversationIndex(cnv_id_global, shm_ptr_global);
         if (cnv_index == -1){
+            unlock(sem_id_global);
+            termination_order = 1;
             perror("Conversation no longer exists");
-            exit(0);
+            pthread_exit(NULL);
         }
         Conversation* cnv_ptr = &(shm_ptr_global->conversations[cnv_index]);
 
         int prt_index = findParticipantIndex(cnv_ptr);
         if (prt_index == -1){
+            unlock(sem_id_global);
+            termination_order = 1;
             perror("Participant no longer exists");
-            exit(0);
+            pthread_exit(NULL);
         }
 
         for (int i = 0; i < cnv_ptr->numMessages; ++i){
             Message* msg_ptr = &(cnv_ptr->messages[i]);
             if (msg_ptr->hasBeenRead[prt_index] == 0){
-                printf("[PID %d]: %s\n>", msg_ptr->senderId, msg_ptr->text);
+                printf("[PID %d]: %s\n", msg_ptr->senderId, msg_ptr->text);
                 msg_ptr->hasBeenRead[prt_index]=1;
             }
             // If TERMINATE is read, leave the conversation, detach from memory and cleanup the semaphore
@@ -43,11 +50,10 @@ void* recieveMessages(void* arg){
             if (strcmp(msg_ptr->text, "TERMINATE") == 0) {
                 
                 unlock(sem_id_global);
-                leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
-                cleanUpProcess(sem_id_global, shm_ptr_global);
+                termination_order = 1;
  
-                printf("Conversation terminated.\n");
-                exit(0);
+                printf("Conversation pending termination / Please press <ENTER> ...\n");
+                pthread_exit(NULL);
             }
         
         }
@@ -58,7 +64,8 @@ void* recieveMessages(void* arg){
 
 int main(int argc, char** argv){
     // Completely cleans shared memory and semaphore
-    // Do not use while other processes are using that space
+    // Do not use while other processes are using that space 
+    // For testing
     if ((argc == 3)&&(strcmp(argv[2], "FLUSH") == 0)){
         cnv_id_global = atoi(argv[1]);
         setUpSemaphore(&sem_id_global);
@@ -90,9 +97,19 @@ int main(int argc, char** argv){
 
     char buffer[MAX_MESSAGE_LENGTH];
     while (1){
-        printf(">");
         // Read the message and send if successful
         if (!fgets(buffer, MAX_MESSAGE_LENGTH, stdin)) break;
+
+        // Check if TERMINATE has been read by the reading thread
+        if (termination_order == 1){
+
+            leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
+            printf("Exited conversation.\n");
+
+            if (cleanUpProcess(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory.\n");
+            exit(0);
+        }
+
         buffer[strcspn(buffer, "\n")] = 0;
 
         sendMessage(cnv_id_global, sem_id_global, shm_ptr_global, buffer);
@@ -102,13 +119,14 @@ int main(int argc, char** argv){
         if (strcmp(buffer, "TERMINATE") == 0) {
 
             leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
-            cleanUpProcess(sem_id_global, shm_ptr_global);
-            printf("Conversation terminated.\n");
+            printf("Exited conversation.\n");
+
+            if (cleanUpProcess(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory.\n");
             exit(0);
         }
         
     }
-    cleanUpProcess(sem_id_global,shm_ptr_global);
-    printf("FINISHED\n");
-    return 0;
+    // Should not happen
+    fprintf(stderr,"This should never be reached.\n");
+    return 1;
 }

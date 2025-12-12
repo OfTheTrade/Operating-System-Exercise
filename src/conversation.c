@@ -61,8 +61,9 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     // Initialise the values of the new participant
     cnv_ptr->participants[prp_index].participantId = getpid();
 
-    // Update numParticipants
+    // Update numParticipants and numProcesses
     cnv_ptr->numParticipants++;
+    shm_ptr->numProcesses++;
 
     unlock(sem_id);
     return cnv_index;
@@ -89,8 +90,12 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         for (int i = ptr_index; i < cnv_ptr->numParticipants - 1; i++){
             cnv_ptr->participants[i] = cnv_ptr->participants[i+1];
         }
+        // Update numParticpants
         cnv_ptr->numParticipants--;
     }
+    // Update numProcesses
+    shm_ptr->numProcesses--;
+    
 
     // If conversation is empty, remove it
     if(cnv_ptr->numParticipants == 0 && cnv_ptr->numMessages == 0){
@@ -98,6 +103,7 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         for(int i = cnv_index; i < shm_ptr->numConversations - 1; i++){
             shm_ptr->conversations[i] = shm_ptr->conversations[i+1];
         }
+        // Update numConversations
         shm_ptr->numConversations--;
     }
 

@@ -34,6 +34,7 @@ typedef struct{
 typedef struct{
     Conversation conversations[MAX_CONVERSATIONS];
     int numConversations;
+    int numProcesses;
 } SharedMemory;
 
 
@@ -45,11 +46,12 @@ void setUpSemaphore(int* sem_id);
 // Set up shared memory
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
 
+// If this is the last process, clean up shared memory and semaphore
+// Else just detach from shared memory
+int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr);
+
 // Cleanup semaphore and shared memory
 void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr);
-
-// Detach from shared memory
-void cleanUpProcess(int sem_id, SharedMemory* shm_ptr);
 
 // == Semaphore Actions ===
 

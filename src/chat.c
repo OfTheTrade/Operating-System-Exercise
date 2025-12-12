@@ -60,11 +60,33 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
     // If this is the first time, initiate the values of the shared memory
     if (shm_stat.shm_nattch == 0) {
         shm_ptr_buffer->numConversations = 0;
+        shm_ptr_buffer->numProcesses = 0;
     }
 
     // Return values
     *(shm_id) = shm_id_buffer;
     *(shm_ptr) = shm_ptr_buffer;
+}
+
+// If this is the last process, clean up shared memory and semaphore
+// Else just detach from shared memory
+int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr){
+
+    if (shm_ptr->numProcesses == 0){
+        // Detach
+        shmdt(shm_ptr); 
+        // Remove shared memory           
+        shmctl(shm_id, IPC_RMID, NULL); 
+        // Remove semaphore
+        semctl(sem_id, 0, IPC_RMID);  
+
+        return 1;
+    }else{ 
+        // Just detach
+        shmdt(shm_ptr);
+        
+        return 0; 
+    }
 }
 
 // Cleanup semaphore and shared memory
@@ -77,11 +99,6 @@ void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr){
     semctl(sem_id, 0, IPC_RMID);  
 }
 
-// Detach from shared memory
-void cleanUpProcess(int sem_id, SharedMemory* shm_ptr){
-    // Detach
-    shmdt(shm_ptr); 
-}
 
 // == Semaphore Actions ===
 
