@@ -5,7 +5,10 @@
 
 // === Conversation Actions ===
 
-// Find and return the index of a convertation with the given id in SharedMemoryGiven
+// Find and return the index of the particpant repressenting the currect process
+int findParticipantIndex(Conversation* cnv_ptr);
+
+// Find and return the index of the convertation with the given if it exists in the SharedMemoryGiven
 int findConversationIndex(int cnv_id, SharedMemory* shm_ptr);
 
 // Join the conversation with the given id, or create one if one does not exist

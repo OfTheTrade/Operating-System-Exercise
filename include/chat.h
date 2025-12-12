@@ -11,7 +11,6 @@
 // All that defines a participant in a conversation
 typedef struct{
     pid_t participantId;
-    int hasRead;
 } Participant;
 
 // All that defines a message in a conversation

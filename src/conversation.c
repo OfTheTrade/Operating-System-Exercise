@@ -4,7 +4,17 @@
 
 // === Conversation Actions ===
 
-// Find out if a convertation with the given id exists in the SharedMemoryGiven
+// Find and return the index of the particpant repressenting the currect process
+int findParticipantIndex(Conversation* cnv_ptr){
+    for (int i = 0; i < cnv_ptr->numParticipants; i++){
+        if (cnv_ptr->participants[i].participantId == getpid()){
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Find and return the index of the convertation with the given if it exists in the SharedMemoryGiven
 int findConversationIndex(int cnv_id, SharedMemory* shm_ptr){
     for (int i = 0; i < shm_ptr->numConversations; ++i){
         if (shm_ptr->conversations[i].conversationId == cnv_id){
@@ -50,7 +60,6 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
 
     // Initialise the values of the new participant
     cnv_ptr->participants[prp_index].participantId = getpid();
-    cnv_ptr->participants[prp_index].hasRead = 0;
 
     // Update numParticipants
     cnv_ptr->numParticipants++;
@@ -72,18 +81,15 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     }
 
     // Search for the current process in participants
-    int found = 0;
     Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
-    for (int i = 0; i < cnv_ptr->numParticipants; i++){
-        if (cnv_ptr->participants[i].participantId == getpid()){
-            found = 1;
-            // Shift left participants
-            for (int j = i; j < cnv_ptr->numParticipants - 1; i++){
-                cnv_ptr->participants[i] = cnv_ptr->participants[i+1];
-            }
-            cnv_ptr->numParticipants--;
-            break;
+    int ptr_index = findParticipantIndex(cnv_ptr);
+
+    if (ptr_index != -1){
+        // Shift left participants
+        for (int i = ptr_index; i < cnv_ptr->numParticipants - 1; i++){
+            cnv_ptr->participants[i] = cnv_ptr->participants[i+1];
         }
+        cnv_ptr->numParticipants--;
     }
 
     // If conversation is empty, remove it
@@ -94,8 +100,9 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         }
         shm_ptr->numConversations--;
     }
+
     unlock(sem_id);
-    return found ? 0 : -1;
+    return ptr_index;
 }
 
 // Send a message to the conversation with the given id
@@ -125,10 +132,17 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
     msg_ptr->senderId = getpid();
     strncpy(msg_ptr->text, text, MAX_MESSAGE_LENGTH - 1);
     msg_ptr->text[MAX_MESSAGE_LENGTH - 1] = '\0';
+    // Pass through entire stucture to make unread
     for (int i=0; i < MAX_PARTICIPANTS; i++){
         msg_ptr->hasBeenRead[i] = 0;
     }
-
+    
+    // Pass through defined structure to check for own message
+    for (int i=0; i < cnv_ptr->numParticipants; i++){
+        if (cnv_ptr->participants[i].participantId == getpid()){
+            msg_ptr->hasBeenRead[i] = 1;
+        }
+    }
     // Update numMessages
     cnv_ptr->numMessages++;
 
