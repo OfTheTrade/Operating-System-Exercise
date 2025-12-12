@@ -34,7 +34,6 @@ typedef struct{
 typedef struct{
     Conversation conversations[MAX_CONVERSATIONS];
     int numConversations;
-    int numProcesses;
 } SharedMemory;
 
 

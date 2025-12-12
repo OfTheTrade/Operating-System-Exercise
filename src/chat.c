@@ -60,7 +60,6 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
     // If this is the first time, initiate the values of the shared memory
     if (shm_stat.shm_nattch == 0) {
         shm_ptr_buffer->numConversations = 0;
-        shm_ptr_buffer->numProcesses = 0;
     }
 
     // Return values
@@ -72,7 +71,9 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr){
 // Else just detach from shared memory
 int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr){
 
-    if (shm_ptr->numProcesses == 0){
+    struct shmid_ds shm_stat;
+    shmctl(shm_id, IPC_STAT, &shm_stat);
+    if (shm_stat.shm_nattch <= 1){
         // Detach
         shmdt(shm_ptr); 
         // Remove shared memory           
@@ -84,7 +85,7 @@ int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr){
     }else{ 
         // Just detach
         shmdt(shm_ptr);
-        
+
         return 0; 
     }
 }
