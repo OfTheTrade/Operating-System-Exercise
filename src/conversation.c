@@ -55,6 +55,7 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         return -1;
     }
     
+
     // The new participant will be located at the last spot (the unupdated numParticipants since the table participants[numParticipants] is zero indexed)
     int prp_index = cnv_ptr->numParticipants;
 
@@ -84,17 +85,15 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
     int ptr_index = findParticipantIndex(cnv_ptr);
 
-    if (ptr_index != -1){
-        // Shift left participants
-        for (int i = ptr_index; i < cnv_ptr->numParticipants - 1; i++){
-            cnv_ptr->participants[i] = cnv_ptr->participants[i+1];
-        }
-        // Update numParticpants
-        cnv_ptr->numParticipants--;
-    }
+    cnv_ptr->participants[ptr_index].participantId = -1;
 
+    // Check if conversation has no participants
+    int cnv_removal_flag = 0;
+    for (int i = 0 ; i < cnv_ptr->numParticipants; i++){
+        if (cnv_ptr->participants[i].participantId != -1) cnv_removal_flag = 1;
+    }
     // If conversation is empty, remove it
-    if(cnv_ptr->numParticipants == 0 && cnv_ptr->numMessages == 0){
+    if(cnv_removal_flag && (cnv_ptr->numMessages == 0)){
         // Shift left conversations
         for(int i = cnv_index; i < shm_ptr->numConversations - 1; i++){
             shm_ptr->conversations[i] = shm_ptr->conversations[i+1];
@@ -139,15 +138,33 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
         msg_ptr->hasBeenRead[i] = 0;
     }
     
-    // Pass through defined structure to check for own message
-    for (int i=0; i < cnv_ptr->numParticipants; i++){
-        if (cnv_ptr->participants[i].participantId == getpid()){
-            msg_ptr->hasBeenRead[i] = 1;
-        }
-    }
     // Update numMessages
     cnv_ptr->numMessages++;
 
     unlock(sem_id);
     return msg_index;
+}
+
+// Returns if a message needs to be removed (has been read by everyone)
+int messageRemovalCheck(Conversation* cnv_ptr, int msg_index){
+    int removal_flag = 1;
+    // Check if this messsage has been read by everyone
+    for (int i = 0; i < cnv_ptr->numParticipants; ++i){
+        if ((cnv_ptr->participants[i].participantId != -1)&&(cnv_ptr->messages[msg_index].hasBeenRead[i] == 0)){
+            removal_flag = 0;
+            break;
+        } 
+    }
+    return removal_flag;
+}
+
+// Removes the message with the given index from the given conversation
+void messageRemoval(Conversation* cnv_ptr, int msg_index){
+    // Shift messages to the left and update numMessages
+    for (int i = msg_index; i < cnv_ptr->numMessages - 1; i++){
+         cnv_ptr->messages[i] = cnv_ptr->messages[i+1];
+    }
+
+    // Update numMessages, msg_index
+    cnv_ptr->numMessages--;
 }

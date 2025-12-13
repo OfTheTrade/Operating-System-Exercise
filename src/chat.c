@@ -4,10 +4,6 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 
-#define SEM_KEY 0x1234
-#define SHM_KEY 0x5678
-
-
 // === Semaphore/Shared Memory Setup Functions ===
 
 // Set up semaphore
@@ -96,8 +92,8 @@ void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr){
     shmdt(shm_ptr); 
     // Remove shared memory           
     shmctl(shm_id, IPC_RMID, NULL); 
-    // Remove semaphore
-    semctl(sem_id, 0, IPC_RMID);  
+    // Remove semaphores
+    semctl(sem_id, 0, IPC_RMID);   
 }
 
 
