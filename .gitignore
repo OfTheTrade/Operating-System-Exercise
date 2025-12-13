@@ -10,3 +10,4 @@
 !src/*.c
 !.gitignore
 !makefile
+!*.md

@@ -77,22 +77,23 @@ void* recieveMessages(void* arg){
 }
 
 int main(int argc, char** argv){
-    // Completely cleans shared memory and semaphore
-    // Do not use while other processes are using that space 
-    // For testing
-    if ((argc == 3)&&(strcmp(argv[2], "FLUSH") == 0)){
-        cnv_id_global = atoi(argv[1]);
-        setUpSemaphore(&sem_id_global);
-        setUpSharedMemory(&shm_id_global, &shm_ptr_global);
-        cleanUpFull(sem_id_global, shm_id_global, shm_ptr_global);
-        return 0;
     // Normal execution
-    }else if (argc != 2){
+    if (argc != 2){
         fprintf(stderr,"Incorrect argument ammount! Should be called as:\n%s <conversation_id>\n", argv[0]);
         return 1;
     }
+    // Completely cleans shared memory and semaphore
+    // Do not use while other processes are using that space 
+    // For testing
+    if (strcmp(argv[1], "FLUSH") == 0){
+        setUpSemaphore(&sem_id_global);
+        setUpSharedMemory(&shm_id_global, &shm_ptr_global);
+        cleanUpFull(sem_id_global, shm_id_global, shm_ptr_global);
+        printf("Flushing shared memory and semaphore!\n");
+        return 0;
+    }
     cnv_id_global = atoi(argv[1]);
-   
+
      // Setup semaphores και shared memory
     setUpSemaphore(&sem_id_global);
     setUpSharedMemory(&shm_id_global, &shm_ptr_global);

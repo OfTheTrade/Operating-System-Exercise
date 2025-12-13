@@ -43,12 +43,7 @@ typedef struct{
 // === Semaphore/Shared Memory Setup Functions ===
 
 // Set up semaphore
-// Only one to represent shared memory
 void setUpSemaphore(int* sem_id);
-
-// Set up counting semaphore
-// Per conversation
-void setUpCountingSemaphore(int* sem_id, int cnv_id);
 
 // Set up shared memory
 void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
@@ -56,9 +51,6 @@ void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
 // If this is the last process, clean up shared memory and semaphore
 // Else just detach from shared memory
 int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr);
-
-// Cleans up just the semaphore given
-void cleanUpSemaphore(int sem_id);
 
 // Cleanup semaphore and shared memory
 void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr);
