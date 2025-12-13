@@ -37,7 +37,7 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         if (cnv_index >= MAX_CONVERSATIONS){
 
             unlock(sem_id);
-            return -1;
+            return 1;
         }
         shm_ptr->numConversations++;
 
@@ -52,7 +52,7 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     if (cnv_ptr->numParticipants >= MAX_PARTICIPANTS){
 
         unlock(sem_id);
-        return -1;
+        return 1;
     }
     
 
@@ -66,7 +66,7 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     cnv_ptr->numParticipants++;
 
     unlock(sem_id);
-    return cnv_index;
+    return 0;
 }
 
 // Leave the conversation with the given id
@@ -113,16 +113,17 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
     // Find the conversation where the message should be sent
     int cnv_index = findConversationIndex(cnv_id, shm_ptr);
     // If there isn't a conversation with that id return with failure
+    // Shouldn't happen in conv_main
     if (cnv_index == -1){
         unlock(sem_id);
-        return -1;
+        return 1;
     }
     Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
 
     // If no more messages can be sent, return with failure
     if (cnv_ptr->numMessages >= MAX_MESSAGES){
         unlock(sem_id);
-        return -1;
+        return 1;
     }
     // The new message will be located at the last spot (the unupdated numMessages since the table messages[numMessages] is zero indexed)
     int msg_index = cnv_ptr->numMessages;
@@ -142,7 +143,7 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
     cnv_ptr->numMessages++;
 
     unlock(sem_id);
-    return msg_index;
+    return 0;
 }
 
 // Returns if a message needs to be removed (has been read by everyone)

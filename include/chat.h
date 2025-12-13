@@ -43,24 +43,22 @@ typedef struct{
 // === Semaphore/Shared Memory Setup Functions ===
 
 // Set up semaphore
-void setUpSemaphore(int* sem_id);
+int setUpSemaphore(int* sem_id);
 
 // Set up shared memory
-void setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
+int setUpSharedMemory(int* shm_id, SharedMemory** shm_ptr);
 
 // If this is the last process, clean up shared memory and semaphore
 // Else just detach from shared memory
-int cleanUpProcess(int sem_id, int shm_id, SharedMemory* shm_ptr);
+int cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr);
 
-// Cleanup semaphore and shared memory
-void cleanUpFull(int sem_id, int shm_id, SharedMemory* shm_ptr);
 
 // == Semaphore Actions ===
 
 // Use when entering critical section
-void lock(int sem_id);
+int lock(int sem_id);
 
 // Use when exiting critical section
-void unlock(int sem_id);
+int unlock(int sem_id);
 
 #endif

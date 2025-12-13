@@ -83,25 +83,41 @@ int main(int argc, char** argv){
         return 1;
     }
     // Completely cleans shared memory and semaphore
-    // Do not use while other processes are using that space 
     // For testing
     if (strcmp(argv[1], "FLUSH") == 0){
-        setUpSemaphore(&sem_id_global);
-        setUpSharedMemory(&shm_id_global, &shm_ptr_global);
-        cleanUpFull(sem_id_global, shm_id_global, shm_ptr_global);
+        if(setUpSharedMemory(&shm_id_global, &shm_ptr_global)){
+            fprintf(stderr,"Unable to set up shared memory!\n");
+            return 1;
+        }
+        if (setUpSemaphore(&sem_id_global)){
+            fprintf(stderr,"Unable to set up semaphore!\n");
+            return 1;
+        }
+        cleanUp(sem_id_global, shm_id_global, shm_ptr_global);
         printf("Flushing shared memory and semaphore!\n");
         return 0;
     }
     cnv_id_global = atoi(argv[1]);
 
-     // Setup semaphores και shared memory
-    setUpSemaphore(&sem_id_global);
-    setUpSharedMemory(&shm_id_global, &shm_ptr_global);
+    // Setup shared memory
+    if(setUpSharedMemory(&shm_id_global, &shm_ptr_global)){
+        fprintf(stderr,"Unable to set up shared memory!\n");     
+        return 1;
+    }
+    // Setup semaphore
+    if (setUpSemaphore(&sem_id_global)){
+        fprintf(stderr,"Unable to set up semaphore!\n");
+
+        // Cleanup shared memory
+        cleanUp(-1, shm_id_global, shm_ptr_global);
+        return 1;
+    }
 
     // Join the conversation
-    int cnv_index = joinConversation(cnv_id_global, sem_id_global, shm_ptr_global);
-    if(cnv_index == -1){
+    if(joinConversation(cnv_id_global, sem_id_global, shm_ptr_global)){
+        if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
         fprintf(stderr,"Unable to join or create a conversation with the given id!\n");
+        return 1;
     }
 
     printf("Succesfully joined conversation with id:(%d) Input messages to send below.\n", cnv_id_global);
@@ -110,18 +126,25 @@ int main(int argc, char** argv){
     pthread_t rcv_thread;
     int thread_flag = pthread_create(&rcv_thread, NULL, recieveMessages, NULL);
     if (thread_flag != 0){
-        cleanUpProcess(sem_id_global, shm_id_global, shm_ptr_global);
+        if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
         fprintf(stderr,"Unable to obtain thread!\n");
-        exit(1);
+        return 1;
     }
 
     char buffer[MAX_MESSAGE_LENGTH];
     while (1){
         // Read the message and send if successful
-        if (!fgets(buffer, MAX_MESSAGE_LENGTH, stdin)) break;
-        printf("\033[1A");  
-        printf("\033[2K");  
-
+        if (!fgets(buffer, MAX_MESSAGE_LENGTH, stdin)) {
+            // If fgets fails, send a blank message
+            buffer[0] = ' ';
+            buffer[1] = '\0';
+        }else{
+            // Remove newline from buffer
+            buffer[strcspn(buffer, "\n")] = 0;
+            // Delete input from terminal
+            printf("\033[1A");  
+            printf("\033[2K");  
+        }
         // Check if TERMINATE has been read by the reading thread
         if (termination_order == 1){
 
@@ -129,16 +152,25 @@ int main(int argc, char** argv){
             leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
             printf("Exited conversation.\n");
 
-            if (cleanUpProcess(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory.\n");
+            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
             return 0;
         }
 
-        buffer[strcspn(buffer, "\n")] = 0;
-
         // A new message is being output
-        sendMessage(cnv_id_global, sem_id_global, shm_ptr_global, buffer);
+        if(sendMessage(cnv_id_global, sem_id_global, shm_ptr_global, buffer)){
+            // The maximun ammount of messages is reached
+            termination_order = 1;
+
+            pthread_join(rcv_thread, NULL);
+            leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
+            printf("Exited conversation.\n");
+
+            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
+            return 0;
+        }
         
     }
+
     // Should not happen
     fprintf(stderr,"This should never be reached.\n");
     return 1;
