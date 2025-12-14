@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-// These values, once set, will not change even when other processes run in parrare
+// These values, once set, will not change even when other processes run in parrarel
 int sem_id_global;
 int shm_id_global;
 SharedMemory* shm_ptr_global;
