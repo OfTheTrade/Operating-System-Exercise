@@ -156,7 +156,7 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
 // Returns if a message needs to be removed (has been read by everyone)
 int messageRemovalCheck(Conversation* cnv_ptr, int msg_index){
     int removal_flag = 1;
-    // Check if this messsage has been read by everyone
+    // Check if this messsage has not been read by an active participant
     for (int i = 0; i < cnv_ptr->numParticipants; ++i){
         if ((cnv_ptr->participants[i].participantId != -1)&&(cnv_ptr->messages[msg_index].hasBeenRead[i] == 0)){
             removal_flag = 0;

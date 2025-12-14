@@ -25,7 +25,7 @@ void* recieveMessages(void* arg){
         int cnv_index = findConversationIndex(cnv_id_global, shm_ptr_global);
         if (cnv_index == -1){
             termination_order = 1;
-            perror("Conversation no longer exists");
+            // Conversation no longer exists
             unlock(sem_id_global);
             break;
         }
@@ -34,7 +34,7 @@ void* recieveMessages(void* arg){
         int prt_index = findParticipantIndex(cnv_ptr);
         if (prt_index == -1){
             termination_order = 1;
-            perror("Participant no longer exists");
+            // Participant no longer exists
             unlock(sem_id_global);
             break;
         }
