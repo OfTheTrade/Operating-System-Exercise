@@ -2,7 +2,8 @@
 #include <unistd.h>
 #include <string.h>
 
-// === Conversation Actions ===
+
+// === Search Functions ===
 
 // Find and return the index of the particpant repressenting the currect process
 int findParticipantIndex(Conversation* cnv_ptr){
@@ -23,6 +24,9 @@ int findConversationIndex(int cnv_id, SharedMemory* shm_ptr){
     }
     return -1;
 }
+
+
+// === Conversation Participation Functions ===
 
 // Join the conversation with the given id, or create one if one does not exist
 int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
@@ -145,6 +149,9 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
     unlock(sem_id);
     return 0;
 }
+
+
+// === Message Removal Functions ===
 
 // Returns if a message needs to be removed (has been read by everyone)
 int messageRemovalCheck(Conversation* cnv_ptr, int msg_index){

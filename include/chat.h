@@ -11,6 +11,8 @@
 #define SEM_KEY 0x1234
 #define SHM_KEY 0x5678
 
+// === Shared Memory Structs ===
+
 // All that defines a participant in a conversation
 typedef struct{
     pid_t participantId;
