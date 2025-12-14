@@ -19,9 +19,6 @@ void* recieveMessages(void* arg){
 
     while(!termination_order){
         usleep(300000);
-        if (fatal_error){
-            break;
-        }
         if(lock(sem_id_global)){
             break;
         }   
@@ -129,8 +126,8 @@ int main(int argc, char** argv){
         return 1;
     // Semaphore fatal error
     }else if(cnv_error <= -1){
+        fprintf(stderr,"Semaphore unresponsive!\n");
         if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
-        fprintf(stderr,"Semaphore unresponsive!\n");;
         return 1;
     }
 
@@ -199,15 +196,17 @@ int main(int argc, char** argv){
             pthread_join(rcv_thread, NULL);
             // This should never not execute
             // Here for safety
+            int return_type = 0;
             if(!fatal_error){
                 leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
                 printf("Exited conversation.\n");
             }else{
+                return_type = 1;
                 printf("Semaphore unresponsive.\n");
             }
 
             if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
-            return 0;
+            return return_type;
     // Termination due to unresponsive semaphores
     }else if (termination_type == 'S'){
 

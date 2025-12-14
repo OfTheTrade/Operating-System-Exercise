@@ -103,22 +103,28 @@ volatile int fatal_error = 0;
 
 // Use when entering critical section
 int lock(int sem_id){
-    struct sembuf op = {0, -1, 0};
-    if (semop(sem_id, &op, 1) == -1){
-        // Failed to lock semaphore
-        fatal_error = 1;
-        return 1;
+    if (fatal_error == 0){
+        struct sembuf op = {0, -1, 0};
+        if (semop(sem_id, &op, 1) == -1){
+            // Failed to lock semaphore
+            fatal_error = 1;
+            return 1;
+        }
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 // Use when exiting critical section
 int unlock(int sem_id){
-    struct sembuf op = {0, 1, 0};
-    if (semop(sem_id, &op, 1) == -1){
-        // Failed to unlock semaphore
-        fatal_error = 1;
-        return 1;
+    if (fatal_error == 0){
+        struct sembuf op = {0, 1, 0};
+        if (semop(sem_id, &op, 1) == -1){
+            // Failed to unlock semaphore
+            fatal_error = 1;
+            return 1;
+        }
+        return 0;
     }
-    return 0;
+    return 1;
 }

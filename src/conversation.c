@@ -5,7 +5,7 @@
 
 // === Search Functions ===
 
-// Find and return the index of the particpant repressenting the currect proces
+// Find and return the index of the particpant repressenting the currect process
 int findParticipantIndex(Conversation* cnv_ptr){
     for (int i = 0; i < cnv_ptr->numParticipants; i++){
         if (cnv_ptr->participants[i].participantId == getpid()){
