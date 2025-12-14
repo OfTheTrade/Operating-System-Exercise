@@ -11,3 +11,4 @@
 !.gitignore
 !makefile
 !*.md
+!*.pdf
