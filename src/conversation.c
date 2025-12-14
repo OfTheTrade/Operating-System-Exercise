@@ -30,7 +30,9 @@ int findConversationIndex(int cnv_id, SharedMemory* shm_ptr){
 
 // Join the conversation with the given id, or create one if one does not exist
 int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
-    lock(sem_id);
+    if(lock(sem_id)){
+        return -1;
+    }
 
     int cnv_index = findConversationIndex(cnv_id, shm_ptr);
     // If no conversation with the given id exists, create one if possible
@@ -40,7 +42,9 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         // If no more conversation can exist, return with failure, else initialise a new one
         if (cnv_index >= MAX_CONVERSATIONS){
 
-            unlock(sem_id);
+            if(unlock(sem_id)){
+                return -1;
+            }
             return 1;
         }
         shm_ptr->numConversations++;
@@ -55,7 +59,9 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     // If there more Participants cannot be added, return with failure
     if (cnv_ptr->numParticipants >= MAX_PARTICIPANTS){
 
-        unlock(sem_id);
+        if(unlock(sem_id)){
+            return -1;
+        }
         return 1;
     }
     
@@ -69,20 +75,26 @@ int joinConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     // Update numParticipants
     cnv_ptr->numParticipants++;
 
-    unlock(sem_id);
+    if(unlock(sem_id)){
+        return -1;
+    }
     return 0;
 }
 
 // Leave the conversation with the given id
 int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
-    lock(sem_id);
+    if(lock(sem_id)){
+        return -1;
+    }
 
     int cnv_index = findConversationIndex(cnv_id, shm_ptr);
     // If no conversation with the given id exists, return with failure
     if (cnv_index == -1){
 
-        unlock(sem_id);
-        return -1;
+        if(unlock(sem_id)){
+            return -1;
+        }
+        return 1;
     }
 
     // Search for the current process in participants
@@ -106,27 +118,35 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
         shm_ptr->numConversations--;
     }
 
-    unlock(sem_id);
-    return ptr_index;
+    if(unlock(sem_id)){
+        return -1;
+    }
+    return 0;
 }
 
 // Send a message to the conversation with the given id
 int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text){
-    lock(sem_id);
+    if(lock(sem_id)){
+        return -1;
+    }
 
     // Find the conversation where the message should be sent
     int cnv_index = findConversationIndex(cnv_id, shm_ptr);
     // If there isn't a conversation with that id return with failure
     // Shouldn't happen in conv_main
     if (cnv_index == -1){
-        unlock(sem_id);
+        if(unlock(sem_id)){
+            return -1;
+        }
         return 1;
     }
     Conversation* cnv_ptr = &(shm_ptr->conversations[cnv_index]);
 
     // If no more messages can be sent, return with failure
     if (cnv_ptr->numMessages >= MAX_MESSAGES){
-        unlock(sem_id);
+        if(unlock(sem_id)){
+            return -1;
+        }
         return 1;
     }
     // The new message will be located at the last spot (the unupdated numMessages since the table messages[numMessages] is zero indexed)
@@ -146,7 +166,9 @@ int sendMessage(int cnv_id, int sem_id, SharedMemory* shm_ptr, const char* text)
     // Update numMessages
     cnv_ptr->numMessages++;
 
-    unlock(sem_id);
+    if(unlock(sem_id)){
+        return -1;
+    }
     return 0;
 }
 

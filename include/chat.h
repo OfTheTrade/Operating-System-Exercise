@@ -44,6 +44,9 @@ typedef struct{
 
 // === Semaphore/Shared Memory Setup Functions ===
 
+// If semaphore is lost mid-execution
+extern volatile int fatal_error;
+
 // Set up semaphore
 int setUpSemaphore(int* sem_id);
 

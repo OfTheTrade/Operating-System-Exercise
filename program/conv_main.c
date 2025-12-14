@@ -19,7 +19,12 @@ void* recieveMessages(void* arg){
 
     while(!termination_order){
         usleep(300000);
-        lock(sem_id_global);
+        if (fatal_error){
+            break;
+        }
+        if(lock(sem_id_global)){
+            break;
+        }   
 
         // Find the current position of the conversation and participant struct in shared memory
         int cnv_index = findConversationIndex(cnv_id_global, shm_ptr_global);
@@ -70,7 +75,9 @@ void* recieveMessages(void* arg){
                 i++;
             }
         }
-        unlock(sem_id_global);
+        if(unlock(sem_id_global)){
+            break;
+        }
     }
     return NULL;
 
@@ -114,9 +121,16 @@ int main(int argc, char** argv){
     }
 
     // Join the conversation
-    if(joinConversation(cnv_id_global, sem_id_global, shm_ptr_global)){
+    int cnv_error = joinConversation(cnv_id_global, sem_id_global, shm_ptr_global);
+    // Joining error
+    if(cnv_error >= 1){
         if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
         fprintf(stderr,"Unable to join or create a conversation with the given id!\n");
+        return 1;
+    // Semaphore fatal error
+    }else if(cnv_error <= -1){
+        if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
+        fprintf(stderr,"Semaphore unresponsive!\n");;
         return 1;
     }
 
@@ -131,6 +145,9 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    // 'F' for full terminate
+    // 'S' for semaphore error termination
+    char termination_type;
     char buffer[MAX_MESSAGE_LENGTH];
     while (1){
         // Read the message and send if successful
@@ -145,32 +162,57 @@ int main(int argc, char** argv){
             printf("\033[1A");  
             printf("\033[2K");  
         }
+
+        // Access to semaphore and shared memory is lost
+        if (fatal_error == 1){
+            termination_type = 'S';
+            break;  
         // Check if TERMINATE has been read by the reading thread
-        if (termination_order == 1){
-
-            pthread_join(rcv_thread, NULL);
-            leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
-            printf("Exited conversation.\n");
-
-            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
-            return 0;
+        }else if (termination_order == 1){
+            termination_type = 'F';
+            break;
         }
 
         // A new message is being output
-        if(sendMessage(cnv_id_global, sem_id_global, shm_ptr_global, buffer)){
-            // The maximun ammount of messages is reached
+        int msg_error = sendMessage(cnv_id_global, sem_id_global, shm_ptr_global, buffer);
+        // The maximun ammount of messages is reached
+        if(msg_error >= 1){
+            // Order thread to stop and do normal termination
             termination_order = 1;
-
-            pthread_join(rcv_thread, NULL);
-            leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
-            printf("Exited conversation.\n");
-
-            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
-            return 0;
+            termination_type = 'F';
+            break;
+        // Fatal semaphore error
+        }else if (msg_error <= -1){
+            termination_type = 'S';    
+            break;
         }
         
     }
+    // Full termination due to termination order
+    if (termination_type == 'F'){
 
+            pthread_join(rcv_thread, NULL);
+            // This should never not execute
+            // Here for safety
+            if(!fatal_error){
+                leaveConversation(cnv_id_global, sem_id_global, shm_ptr_global);
+                printf("Exited conversation.\n");
+            }else{
+                printf("Semaphore unresponsive.\n");
+            }
+
+            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
+            return 0;
+    // Termination due to unresponsive semaphores
+    }else if (termination_type == 'S'){
+
+            termination_order = 1;
+            pthread_join(rcv_thread, NULL);
+    
+            printf("Semaphore unresponsive.\n");
+            if (cleanUp(sem_id_global, shm_id_global, shm_ptr_global)) printf("Last proccess alive. Flushing shared memory and semaphore.\n");
+            return 0;
+    }
     // Should not happen
     fprintf(stderr,"This should never be reached.\n");
     return 1;
