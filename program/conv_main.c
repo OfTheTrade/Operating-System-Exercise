@@ -147,7 +147,7 @@ int main(int argc, char** argv){
 
     // 'F' for full terminate
     // 'S' for semaphore error termination
-    char termination_type;
+    char termination_type = ' ';
     char buffer[MAX_MESSAGE_LENGTH];
 
     // Start message sending loop

@@ -4,9 +4,6 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 
-// If semaphore is lost mid-execution
-volatile int fatal_error = 0;
-
 // === Semaphore/Shared Memory Setup Functions ===
 
 // Set up semaphore
@@ -100,6 +97,9 @@ int cleanUp(int sem_id, int shm_id, SharedMemory* shm_ptr){
 
 
 // == Semaphore Actions ===
+
+// If semaphore is lost mid-execution
+volatile int fatal_error = 0;
 
 // Use when entering critical section
 int lock(int sem_id){
