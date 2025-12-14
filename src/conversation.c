@@ -1,6 +1,7 @@
 #include "conversation.h"
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 
 // === Search Functions ===
@@ -104,18 +105,19 @@ int leaveConversation(int cnv_id, int sem_id, SharedMemory* shm_ptr){
     cnv_ptr->participants[ptr_index].participantId = -1;
 
     // Check if conversation has no participants
-    int cnv_removal_flag = 0;
+    int cnv_removal_flag = 1;
     for (int i = 0 ; i < cnv_ptr->numParticipants; i++){
-        if (cnv_ptr->participants[i].participantId != -1) cnv_removal_flag = 1;
+        if (cnv_ptr->participants[i].participantId != -1) cnv_removal_flag = 0;
     }
     // If conversation is empty, remove it
-    if(cnv_removal_flag && (cnv_ptr->numMessages == 0)){
+    if(cnv_removal_flag){
         // Shift left conversations
         for(int i = cnv_index; i < shm_ptr->numConversations - 1; i++){
             shm_ptr->conversations[i] = shm_ptr->conversations[i+1];
         }
         // Update numConversations
         shm_ptr->numConversations--;
+        printf("Last proccess alive in conversation. Reseting conversation.\n");
     }
 
     if(unlock(sem_id)){
