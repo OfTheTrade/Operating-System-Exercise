@@ -12,4 +12,4 @@
 
 --------- For More Info ---------
 
-- Check pdf
+- Check supportingmaterial.pdf.
