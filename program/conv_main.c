@@ -149,6 +149,8 @@ int main(int argc, char** argv){
     // 'S' for semaphore error termination
     char termination_type;
     char buffer[MAX_MESSAGE_LENGTH];
+
+    // Start message sending loop
     while (1){
         // Read the message and send if successful
         if (!fgets(buffer, MAX_MESSAGE_LENGTH, stdin)) {
@@ -188,6 +190,9 @@ int main(int argc, char** argv){
         }
         
     }
+    
+    // Termination and cleanup below
+
     // Full termination due to termination order
     if (termination_type == 'F'){
 
